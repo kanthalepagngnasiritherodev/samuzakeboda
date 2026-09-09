@@ -151,8 +151,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "Checking GitHub CLI..."
+          echo "Checking GitHub CLI and authentication..."
           gh --version
+          gh auth status || true
 
           ASSET_FILE="${{ steps.prepare_asset.outputs.asset_path }}"
           if [ ! -f "$ASSET_FILE" ] || [ ! -s "$ASSET_FILE" ]; then
@@ -189,6 +190,7 @@ Download `app-debug.apk` directly from the **Assets** section below.
 EOF
           )
 
+          echo "Creating release $TAG..."
           gh release create "$TAG" "$ASSET_FILE" \
             --target "${{ github.sha }}" \
             --title "$TITLE" \
