@@ -1,0 +1,6 @@
+{
+  "name": "SamuZA Creator Keyboard",
+  "description": "100% offline, sleek Android creator keyboard (IME) for social media creators & page admins with fixed Sinhala Singlish engine, WhatsApp status saver, fancy font generator, hashtag vault, quick snippets, and secret cipher.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

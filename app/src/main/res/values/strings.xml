@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SamuZA Creator Keyboard</string>
+    <string name="ime_service_label">SamuZA Creator Keyboard</string>
+    <string name="ime_settings_label">SamuZA Creator Keyboard Settings</string>
+</resources>
