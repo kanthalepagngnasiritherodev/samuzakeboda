@@ -6,7 +6,7 @@ on:
       - main
   workflow_dispatch:
 
-permissions: 
+permissions:
   contents: write
 
 jobs:
@@ -175,26 +175,26 @@ jobs:
           TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
           TITLE="Debug APK Build #${{ github.run_number }}"
 
-          NOTES=$(cat << 'EOF'
-### Automated Debug APK Release
+          NOTES_FILE="${{ runner.temp }}/release-notes.txt"
+          cat << 'EOF' > "$NOTES_FILE"
+          ### Automated Debug APK Release
 
-- **Build Source**: Automatically generated debug APK built by GitHub Actions.
-- **Workflow Run Number**: ${{ github.run_number }}
-- **Workflow Run Attempt**: ${{ github.run_attempt }}
-- **Source Commit SHA**: `${{ github.sha }}`
-- **Testing Notice**: This APK is intended for testing and development purposes.
-- **Production Notice**: This is not a Google Play Store production release.
-- **Signing**: Signed with a temporary debug keystore.
+          - **Build Source**: Automatically generated debug APK built by GitHub Actions.
+          - **Workflow Run Number**: ${{ github.run_number }}
+          - **Workflow Run Attempt**: ${{ github.run_attempt }}
+          - **Source Commit SHA**: `${{ github.sha }}`
+          - **Testing Notice**: This APK is intended for testing and development purposes.
+          - **Production Notice**: This is not a Google Play Store production release.
+          - **Signing**: Signed with a temporary debug keystore.
 
-Download `app-debug.apk` directly from the **Assets** section below.
-EOF
-          )
+          Download `app-debug.apk` directly from the **Assets** section below.
+          EOF
 
           echo "Creating release $TAG..."
           gh release create "$TAG" "$ASSET_FILE" \
             --target "${{ github.sha }}" \
             --title "$TITLE" \
-            --notes "$NOTES" \
+            --notes-file "$NOTES_FILE" \
             --latest
 
       - name: Report APK download result
