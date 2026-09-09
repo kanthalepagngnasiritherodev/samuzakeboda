@@ -2,6 +2,7 @@ package com.example.ui.keyboard
 
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -58,6 +59,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Badge
@@ -125,6 +127,14 @@ interface KeyboardActionListener {
     fun onAction()
     fun onSwitchIme()
     fun onHide()
+    fun onMoveCursorLeft() {}
+    fun onMoveCursorRight() {}
+    fun onMoveCursorUp() {}
+    fun onMoveCursorDown() {}
+    fun onCopyText() {}
+    fun onCutText() {}
+    fun onPasteText() {}
+    fun onSelectAllText() {}
 }
 
 @Composable
@@ -171,6 +181,15 @@ fun SamuZaKeyboardView(
     }
 
     fun triggerHaptic() {
+        if (state.isSoundEnabled) {
+            try {
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                audioManager?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, 1.0f)
+            } catch (e: Exception) {
+                // ignore audio error
+            }
+        }
+        if (!state.isVibrationEnabled) return
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
@@ -415,6 +434,24 @@ fun SamuZaKeyboardView(
                         activeDrawer = if (state.activeDrawer == ActiveDrawer.SHORTCUTS) ActiveDrawer.NONE else ActiveDrawer.SHORTCUTS
                     )
                 },
+                onToggleWijesekara = {
+                    triggerHaptic()
+                    val newLayout = if (state.layout == KeyboardLayout.WIJESEKARA) KeyboardLayout.ALPHA else KeyboardLayout.WIJESEKARA
+                    state = state.copy(layout = newLayout)
+                    showFeedback(if (newLayout == KeyboardLayout.WIJESEKARA) "විජේසේකර Layout ON" else "English QWERTY ON")
+                },
+                onToggleTextEditing = {
+                    triggerHaptic()
+                    val newLayout = if (state.layout == KeyboardLayout.TEXT_EDITING) KeyboardLayout.ALPHA else KeyboardLayout.TEXT_EDITING
+                    state = state.copy(layout = newLayout)
+                    showFeedback(if (newLayout == KeyboardLayout.TEXT_EDITING) "Text Cursor & Selection Editor ON" else "Standard Keyboard ON")
+                },
+                onOpenSettingsDrawer = {
+                    triggerHaptic()
+                    state = state.copy(
+                        activeDrawer = if (state.activeDrawer == ActiveDrawer.SETTINGS) ActiveDrawer.NONE else ActiveDrawer.SETTINGS
+                    )
+                },
                 onSwitchKeyboard = {
                     triggerHaptic()
                     listener.onSwitchIme()
@@ -550,6 +587,38 @@ fun SamuZaKeyboardView(
                             }
                         )
                     }
+                    ActiveDrawer.SETTINGS -> {
+                        KeyboardQuickSettingsDrawer(
+                            state = state,
+                            onToggleSound = {
+                                triggerHaptic()
+                                state = state.copy(isSoundEnabled = !state.isSoundEnabled)
+                                showFeedback(if (state.isSoundEnabled) "Sound: ON 🔊" else "Sound: OFF 🔇")
+                            },
+                            onToggleVibration = {
+                                triggerHaptic()
+                                state = state.copy(isVibrationEnabled = !state.isVibrationEnabled)
+                                showFeedback(if (state.isVibrationEnabled) "Vibration: ON 📳" else "Vibration: OFF")
+                            },
+                            onToggleNumberRow = {
+                                triggerHaptic()
+                                state = state.copy(isNumberRowEnabled = !state.isNumberRowEnabled)
+                                showFeedback(if (state.isNumberRowEnabled) "Number Row: ON" else "Number Row: OFF")
+                            },
+                            onToggleOneHanded = {
+                                triggerHaptic()
+                                state = state.copy(isOneHandedMode = !state.isOneHandedMode)
+                                showFeedback(if (state.isOneHandedMode) "One-Handed Mode: ON" else "One-Handed Mode: OFF")
+                            },
+                            onChangeScale = { newScale ->
+                                triggerHaptic()
+                                state = state.copy(keyboardScaleHeight = newScale)
+                            },
+                            onClose = {
+                                state = state.copy(activeDrawer = ActiveDrawer.NONE)
+                            }
+                        )
+                    }
                     ActiveDrawer.NONE -> Unit
                 }
             }
@@ -643,6 +712,46 @@ fun SamuZaKeyboardView(
                         }
                     )
                 }
+                KeyboardLayout.WIJESEKARA -> {
+                    WijesekaraKeyboardLayout(
+                        state = state,
+                        onChar = { char -> handleCharTyped(char) },
+                        onDelete = { handleDelete() },
+                        onSpace = { handleSpace() },
+                        onAction = { handleAction() },
+                        onToggleShift = {
+                            triggerHaptic()
+                            state = state.copy(isShifted = !state.isShifted)
+                        },
+                        onSwitchToAlpha = {
+                            triggerHaptic()
+                            state = state.copy(layout = KeyboardLayout.ALPHA)
+                        },
+                        onSwitchToNumbers = {
+                            triggerHaptic()
+                            state = state.copy(layout = KeyboardLayout.NUMBERS)
+                        },
+                        onSwitchToEmoji = {
+                            triggerHaptic()
+                            state = state.copy(layout = KeyboardLayout.EMOJI)
+                        }
+                    )
+                }
+                KeyboardLayout.TEXT_EDITING -> {
+                    TextEditingDrawer(
+                        onMoveLeft = { triggerHaptic(); listener.onMoveCursorLeft() },
+                        onMoveRight = { triggerHaptic(); listener.onMoveCursorRight() },
+                        onMoveUp = { triggerHaptic(); listener.onMoveCursorUp() },
+                        onMoveDown = { triggerHaptic(); listener.onMoveCursorDown() },
+                        onCopy = { triggerHaptic(); listener.onCopyText(); showFeedback("Copied to Clipboard") },
+                        onCut = { triggerHaptic(); listener.onCutText(); showFeedback("Cut text") },
+                        onPaste = { triggerHaptic(); listener.onPasteText(); showFeedback("Pasted") },
+                        onSelectAll = { triggerHaptic(); listener.onSelectAllText(); showFeedback("Selected All") },
+                        onClose = {
+                            state = state.copy(layout = KeyboardLayout.ALPHA)
+                        }
+                    )
+                }
                 KeyboardLayout.EMOJI -> {
                     EmojiKeyboardLayout(
                         onEmojiSelected = { emoji -> handleCommit(emoji) },
@@ -669,6 +778,9 @@ fun KeyboardTopUtilityToolbar(
     onToggleHashtags: () -> Unit,
     onToggleClipboard: () -> Unit,
     onToggleShortcuts: () -> Unit,
+    onToggleWijesekara: () -> Unit,
+    onToggleTextEditing: () -> Unit,
+    onOpenSettingsDrawer: () -> Unit,
     onSwitchKeyboard: () -> Unit,
     onHideKeyboard: () -> Unit,
     onOpenSettings: (() -> Unit)?
@@ -761,6 +873,42 @@ fun KeyboardTopUtilityToolbar(
                 activeColor = Color(0xFFA855F7),
                 onClick = onToggleClipboard,
                 testTag = "toolbar_clipboard"
+            )
+        }
+
+        // Wijesekara Layout Switcher
+        item {
+            ToolbarPill(
+                icon = Icons.Default.Translate,
+                label = if (state.layout == KeyboardLayout.WIJESEKARA) "විජේසේකර ON" else "විජේසේකර",
+                isActive = state.layout == KeyboardLayout.WIJESEKARA,
+                activeColor = NeonPurple,
+                onClick = onToggleWijesekara,
+                testTag = "toolbar_wijesekara"
+            )
+        }
+
+        // Text Cursor & Selection Editing Toolbar
+        item {
+            ToolbarPill(
+                icon = Icons.Default.TextFields,
+                label = "Cursor",
+                isActive = state.layout == KeyboardLayout.TEXT_EDITING,
+                activeColor = NeonCyan,
+                onClick = onToggleTextEditing,
+                testTag = "toolbar_text_editing"
+            )
+        }
+
+        // Quick Settings
+        item {
+            ToolbarPill(
+                icon = Icons.Default.Settings,
+                label = "Settings",
+                isActive = state.activeDrawer == ActiveDrawer.SETTINGS,
+                activeColor = Color(0xFFF43F5E),
+                onClick = onOpenSettingsDrawer,
+                testTag = "toolbar_settings"
             )
         }
 

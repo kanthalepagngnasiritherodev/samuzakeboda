@@ -2,9 +2,11 @@ package com.example.ui.keyboard
 
 enum class KeyboardLayout {
     ALPHA,
+    WIJESEKARA,
     NUMBERS,
     SYMBOLS,
-    EMOJI
+    EMOJI,
+    TEXT_EDITING
 }
 
 enum class ActiveDrawer {
@@ -14,7 +16,8 @@ enum class ActiveDrawer {
     CLIPBOARD,
     SHORTCUTS,
     FANCY_FONTS,
-    HASHTAG_VAULT
+    HASHTAG_VAULT,
+    SETTINGS
 }
 
 data class KeyboardUiState(
@@ -32,5 +35,11 @@ data class KeyboardUiState(
     val detectedSecretMessage: String? = null,
     val decodedClipboardText: String? = null,
     val composingBuffer: String = "",
-    val feedbackMessage: String? = null
+    val feedbackMessage: String? = null,
+    val isSoundEnabled: Boolean = true,
+    val isVibrationEnabled: Boolean = true,
+    val isNumberRowEnabled: Boolean = true,
+    val isOneHandedMode: Boolean = false,
+    val oneHandedSideLeft: Boolean = false,
+    val keyboardScaleHeight: Float = 1.0f // 0.8f, 1.0f, 1.2f
 )
