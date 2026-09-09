@@ -39,7 +39,7 @@ jobs:
           JAVA_VERSION_OUTPUT=$(java -version 2>&1)
           echo "$JAVA_VERSION_OUTPUT"
 
-          # Extract major version number
+          # Detect active Java major version
           DETECTED_MAJOR=$(echo "$JAVA_VERSION_OUTPUT" | head -n 1 | sed -E 's/.*version "([0-9]+).*/\1/')
 
           if ! [[ "$DETECTED_MAJOR" =~ ^[0-9]+$ ]]; then
@@ -123,20 +123,8 @@ jobs:
       - name: Prepare APK release asset
         id: prepare_asset
         run: |
-          # Obtain and sanitize repository name
-          REPO_RAW="${{ github.event.repository.name }}"
-          if [ -z "$REPO_RAW" ]; then
-            REPO_RAW="${{ github.repository }}"
-            REPO_RAW="${REPO_RAW##*/}"
-          fi
-
-          SAFE_REPO=$(echo "$REPO_RAW" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9_-]/-/g' -e 's/-\{2,\}/-/g' -e 's/^-//' -e 's/-$//')
-          if [ -z "$SAFE_REPO" ]; then
-            SAFE_REPO="android-app"
-          fi
-
-          RUN_NUM="${{ github.run_number }}"
-          RELEASE_ASSET_NAME="${SAFE_REPO}-debug-build-${RUN_NUM}.apk"
+          # The GitHub Release asset filename must always be exactly app-debug.apk
+          RELEASE_ASSET_NAME="app-debug.apk"
 
           # Temporary directory on the runner outside the repository
           ASSET_TEMP_DIR="${{ runner.temp }}/release-apk-asset"
@@ -177,6 +165,12 @@ jobs:
             exit 1
           fi
 
+          ASSET_BASENAME=$(basename "$ASSET_FILE")
+          if [ "$ASSET_BASENAME" != "app-debug.apk" ]; then
+            echo "Error: Release asset filename must be exactly app-debug.apk, got: $ASSET_BASENAME"
+            exit 1
+          fi
+
           TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
           TITLE="Debug APK Build #${{ github.run_number }}"
 
@@ -191,7 +185,7 @@ jobs:
 - **Production Notice**: This is not a Google Play Store production release.
 - **Signing**: Signed with a temporary debug keystore.
 
-Download the APK file directly from the **Assets** section below to install on your Android device.
+Download `app-debug.apk` directly from the **Assets** section below.
 EOF
           )
 
@@ -215,21 +209,26 @@ EOF
             gh release view "$TAG"
 
             RELEASE_URL=$(gh release view "$TAG" --json url -q .url)
+            DIRECT_APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/app-debug.apk"
+
             echo "Release Tag: $TAG"
             echo "Release Title: $TITLE"
             echo "Release Page URL: $RELEASE_URL"
             echo "APK Asset Filename: $ASSET_FILENAME"
+            echo "Direct APK URL: $DIRECT_APK_URL"
 
             {
-              echo "## 🚀 Debug APK Released Successfully"
+              echo "## 🚀 DIRECT APK DOWNLOAD"
+              echo ""
+              echo "Direct APK Download Link: [$DIRECT_APK_URL]($DIRECT_APK_URL)"
               echo ""
               echo "- **Release Tag:** \`$TAG\`"
               echo "- **Release Title:** $TITLE"
               echo "- **Direct Release Page:** [$RELEASE_URL]($RELEASE_URL)"
-              echo "- **Direct APK Asset:** \`$ASSET_FILENAME\`"
+              echo "- **APK Filename:** \`$ASSET_FILENAME\`"
               echo ""
               echo "📱 **Download Instructions:**"
-              echo "You can download the APK file directly on your phone from the **Assets** section of the [Release Page]($RELEASE_URL)."
+              echo "You can download the APK directly using the link above or from the **Assets** section of the [Release Page]($RELEASE_URL)."
               echo ""
               echo "📦 **Backup Artifact:**"
               echo "The standard GitHub Actions artifact named \`app-debug-apk\` is also available at the bottom of this workflow run summary."
